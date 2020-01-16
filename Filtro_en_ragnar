@@ -1,0 +1,72 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jan 16 14:51:25 2020
+
+@author: Moreno Alexander
+"""
+
+import wave
+import numpy
+import matplotlib.pyplot as plt
+from scipy import signal
+from scipy.signal import filtfilt
+from scipy.fftpack import fft,ifft
+
+
+#-------------abrir el archivo y encontrar todas las caracteristicas de audio
+#El wave módulo proporciona una interfaz conveniente para el formato de sonido WAV. 
+#No admite compresión / descompresión, pero admite mono / estéreo.
+spf = wave.open('ragnar.wav','r')  #abrir el archivo de audio
+#Condiciones 
+(nChannels, sampWidth, sampleRate, nFrames, compType, compName) = spf.getparams()
+#nFrames
+#----------------------------------------------------------------------------
+#Se extrae el audio del archivo wav
+input_signal = spf.readframes(-1)
+input_signal = numpy.fromstring(input_signal, 'Int16')
+spf.close()
+plt.plot(input_signal)
+plt.show()
+#-----------------------------------------------------------------------------
+#Revisar las componentes en frecuencia
+freq_domain_signal = fft(input_signal)
+plt.plot(freq_domain_signal)
+plt.xlim(0,500000)
+plt.show()
+
+#--------------------------------------------------------------Crear el filtro
+#Frecuencia de la voz=250Hz - 3KHz
+#SampleRate 44000 ---> señal 22000
+N = 4      #ORden del filtro
+nyq = 0.5 * sampleRate #frecuencia de muestreo de la se;al
+low = 100 #Hz 
+high = 2500 #Hz
+#-------------------------------------------------------------Diseño pasa altas
+
+b, a = signal.butter(N,high, fs=sampleRate, btype='lp')
+#b, a = signal.butter(N,high, fs=sampleRate, btype='lp')
+#-----------------------------------------------------------------------graficar
+
+
+#-------------------------------------------------componentes en series de tiempo
+sos= signal.butter(N, low, fs=sampleRate, btype='hp',output='sos')
+plt.plot(sos)
+plt.show()
+
+
+#------------------------------------------------------------------ Aplicar Filtro's
+output_signal = signal.filtfilt(b, a, input_signal)
+
+#------------------------------------------------------------ Crear archivo de salida
+wav_out = wave.open("output.wav", "w")
+wav_out.setparams((nChannels, sampWidth, int(4*sampleRate), nFrames, compType, compName))
+
+
+#------------------------------------------------------ Escribir en el archivo de salida
+wav_out.writeframes(output_signal.tobytes())
+wav_out.close()
+
+#-------------------------------------------------------------------- Graficar la señal
+plt.plot( input_signal, label='Input')
+plt.plot(output_signal, label='Output')
+plt.show()
